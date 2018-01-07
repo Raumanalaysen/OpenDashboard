@@ -4,9 +4,18 @@
 
 # This script sets up the global variables for the OpenDashboard
 
+# set working directory for debugging
+# setwd("/media/sf_Raumanalysen_ChristianMueller/Projekte/OpenDashboard/OpenDashboard")
+
+
 # call libraries
 library(tcltk)
+library(XLConnectJars)
+library(XLConnect)
 
-# define data path
-# dat_path <- tk_choose.dir() # remove comment for choosing a non-local data path
-dat_path <- "/media/sf_Raumanalysen_ChristianMueller/Projekte/Bergheim_Sozialmonitoring" # outcomment absolute data path for running the script with your data
+
+# load configurations
+conf_path <- paste0(getwd(), "/OpenDashboard_Configurations.xlsx")
+wb <- loadWorkbook(conf_path)
+# dat <- readWorksheet(wb, sheet = sheetName, header = T)
+    
