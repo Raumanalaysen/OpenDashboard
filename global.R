@@ -25,8 +25,16 @@ conf_tab <- as.data.frame(read_excel(conf_path, "TableData"))
 
 # load spatial data
 lapply(1:nrow(conf_sp), function(x){
+  
+  # load data
   this_obj <- readOGR(dsn = conf_sp[x, "Datapath_noFilename"], layer = conf_sp[x, "Filename_noExt"])
+  
+  # project to WGS84
+  this_obj <- spTransform(this_obj, CRS("+init=epsg:4326"))
+  
+  # save to global variable
   assign(conf_sp[x, "DataName_com"], this_obj, envir = .GlobalEnv)
+  
 })
 
 
@@ -74,5 +82,11 @@ lapply(1:nrow(conf_tab), function(x){
 
 
 # join spatial and table data
+
+
+
+# define colors
+mycol_1 <- rgb(0, 176, 240, maxColorValue = 255)
+mycol_2 <- rgb(237, 125, 49, maxColorValue = 255)
 
 
