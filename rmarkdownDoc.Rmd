@@ -1,0 +1,22 @@
+---
+title: "OpenDashboard_Mockup"
+author: "RaumanalysenChristianMueller"
+date: "January 9, 2018"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r tabsets, echo=FALSE}
+library(shiny)
+shinyAppDir(getwd(),
+  options = list(
+    width = "100%", height = 550
+  )
+)
+```
+

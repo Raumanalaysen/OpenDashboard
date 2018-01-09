@@ -45,6 +45,11 @@ function(input, output, session){
   # create barplot
   output$barplot_1 <- renderPlot({
     
+    # prepare inputs
+    pos <- order(Einwohnerdaten_2017[,1])
+    att_dat <- Einwohnerdaten_2017$gesamt[pos]
+    att_dat <- att_dat[-c(4, 5, 6, 7, 8)]
+    
     # define plot order
     pos <- rev(order(att_dat))
     
