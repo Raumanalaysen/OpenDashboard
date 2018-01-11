@@ -93,4 +93,11 @@ function(input, output, session){
     
   })
   
+  
+  # quit session when browser is closed
+  session$onSessionEnded(function() { 
+    stopApp()
+    q("no") 
+  })
+  
 }
