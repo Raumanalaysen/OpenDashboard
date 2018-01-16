@@ -10,11 +10,11 @@ function(input, output, session){
   output$att_sel_out <- renderUI({
     
     # get spatial data input
-    this_sp <- input$sp_sel
+    this_sp_char <- input$sp_sel
     # this_sp <- "Stadtgebiet"
     
     # get available attributes
-    this_dat <- get(this_sp)@data
+    this_dat <- get(this_sp_char)@data
     av_atts <- unique(unlist(strsplit(colnames(this_dat), "_timeSep_", fixed = T)))
     av_atts <- av_atts[av_atts %in% all_atts]
     
@@ -46,63 +46,36 @@ function(input, output, session){
   })
   
   
-  # define reactive values
-  reactVals <<- reactiveValues()
-  this_sp <<- get("Stadtteil") # outcomment for dynamic behavior
-  reactVals$sp <- this_sp
-  this_dat <<- c(3591, 2242, 1249, 1963, 4607, 6188, 7139, 14552, 5729, 531, 1837, 1309, 5673, 5460, 1859) # outcomment for dynamic behavior
-  reactVals$dat <- this_dat
-  this_att <<- "gesamt"
-  reactVals$att <- this_att
-  this_time <<- "2017"
-  reactVals$time <- this_time
-  
-  # use the following for dynamic behavior (there seems to be a problem with run time priorities)
-  # observe({
-  # 
-  #   # get input
-  #   this_sp_char <- input$sp_sel
-  #   this_dat_char <- input$att_sel
-  #   this_time_char <- input$time_sel
-  #   # this_sp_char <- "Stadtteil"
-  #   # this_dat_char <- "gesamt"
-  #   # this_time_char <- "2017"
-  # 
-  #   # prepare spatial data and store as reactive values
-  #   this_sp <<- get(this_sp_char)
-  #   this_sp <<- get("Stadtteil") # outcomment for dynamic behavior
-  #   reactVals$sp <- this_sp
-  # 
-  #   # prepare table data and store as reactive values
-  #   this_att <- paste0(this_dat_char, "_timeSep_", this_time_char)
-  #   this_dat <<- this_sp@data[,this_att]
-  #   this_dat <<- c(3591, 2242, 1249, 1963, 4607, 6188, 7139, 14552, 5729, 531, 1837, 1309, 5673, 5460, 1859) # outcomment for dynamic behavior
-  #   reactVals$dat <- this_dat
-  #   reactVals$att <- this_dat_char
-  #   reactVals$time <- this_time_char
-  # 
-  # })
-
-
-
   # create map
   output$map <- renderLeaflet({
 
     # get reactive values
-    this_sp <- reactVals$sp
-    this_dat <- reactVals$dat
+    this_sp_char <- input$sp_sel
+    this_att <- input$att_sel
+    this_time <- input$time_sel
+    this_sp <- get(this_sp_char)
+    this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
     
-
-    # define colors
-    clInt <- classIntervals(this_dat, n = 5, style = "pretty")
-    cols <- as.character(findColours(clInt, pal = c("lightblue", "blue")))
-
-    # define legend labels
-    leg_lab <- character(length(clInt$brks)-1)
-    for (b in 2:length(clInt$brks)){
-      leg_lab[b - 1] <- paste0(clInt$brks[b - 1], " - ", clInt$brks[b])
+    
+    # define class breaks, colors and legend labels
+    if (length(this_dat) > 1){
+      
+      ### issues with colors for classes which do not occur in data
+      ### also consider all time steps in classification
+      clInt <- classIntervals(this_dat, n = 5, style = "pretty")
+      cols <- as.character(findColours(clInt, pal = c("lightblue", "blue")))
+      for (b in 2:length(clInt$brks)){
+        leg_lab[b - 1] <- paste0(clInt$brks[b - 1], " - ", clInt$brks[b])
+      }
+      
+    } else {
+      clInt <- as.character(this_dat)
+      cols <- "blue"
+      leg_lab <- clInt
     }
-
+    
+    # define legend labels
+    
     # create map object
     map <- leaflet() %>%
 
@@ -115,7 +88,7 @@ function(input, output, session){
 
 
     # add polygons
-    map <- addPolygons(map = map, data = Stadtteil, fillColor = cols, color = "white",
+    map <- addPolygons(map = map, data = this_sp, fillColor = cols, color = "white",
                        opacity = 1, fillOpacity = 1, weight = 3)
 
     map
@@ -127,10 +100,11 @@ function(input, output, session){
   output$barplot_1 <- renderHighchart({
     
     # get reactive values
-    this_sp <- reactVals$sp
-    this_dat <- reactVals$dat
-    this_att <- reactVals$att
-    this_time <- reactVals$time
+    this_sp_char <- input$sp_sel
+    this_att <- input$att_sel
+    this_time <- input$time_sel
+    this_sp <- get(this_sp_char)
+    this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
     
     # define theme
     thm <- hc_theme(
@@ -144,7 +118,7 @@ function(input, output, session){
       hc_xAxis(categories = this_sp@data[,conf_join[1, 1]]) %>%
       hc_yAxis(title = list(text = paste0(this_att, " (", this_time, ")"))) %>%
       hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
-      hc_add_series(name = this_att, data = rev(sort(this_dat))) %>% 
+      hc_add_series(name = this_att, data = round(rev(sort(this_dat)), digits = 3)) %>% 
       hc_title(text = "Ranking") %>%
       hc_colors(c('#FF6430', '#FF6430')) %>% 
       hc_add_theme(hc_theme(thm)) %>% 
@@ -157,6 +131,13 @@ function(input, output, session){
   # create scatterplot
   output$scatterplot_1 <- renderPlot({
 
+    # get reactive values
+    this_sp_char <- input$sp_sel
+    this_att <- input$att_sel
+    this_time <- input$time_sel
+    this_sp <- get(this_sp_char)
+    this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
+    
     # prepare data
     plot_x <- 2000:2018
     plot_y <- rnorm(19, 4000, 200)

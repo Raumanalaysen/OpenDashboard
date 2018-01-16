@@ -181,3 +181,31 @@ lapply(1:nrow(conf_sp), function(x){
 mycol_1 <- rgb(0, 176, 240, maxColorValue = 255)
 mycol_2 <- rgb(237, 125, 49, maxColorValue = 255)
 
+# define absolute values for test purpose
+# this_sp_char <- "Stadtgebiet"
+# this_att <- "gesamt"
+# this_time <- "2017"
+# this_sp <- get(this_sp_char)
+# this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
+# this_sp_char <- "Stadtteil"
+# this_att <- "gesamt"
+# this_time <- "2017"
+# this_sp <- get(this_sp_char)
+# this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
+# this_sp_char <- "Stadtteil"
+# this_att <- "18-20 Jahre"
+# this_time <- "2017"
+# this_sp <- get(this_sp_char)
+# this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
+this_sp_char <- conf_sp[1,2]
+this_dat<- get(this_sp_char)@data
+av_atts <- unique(unlist(strsplit(colnames(this_dat), "_timeSep_", fixed = T)))
+av_atts <- av_atts[av_atts %in% all_atts]
+this_att <- sort(av_atts)[1]
+pos <- which(tab_ov[, "att_nice"] == this_att)
+times <- as.numeric(tab_ov[pos, "time"])
+t.min <- min(times, na.rm = T)
+t.max <- max(times, na.rm = T)
+this_time <- t.max
+this_sp <- get(this_sp_char)
+this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
