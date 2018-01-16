@@ -17,18 +17,29 @@ library(dplyr)
 library(leaflet)
 library(sp)
 library(classInt)
+library(highcharter)
+library(extrafont)
+
+# # load fonts
+# font_import()
+# fonts()
 
 # load configurations
 conf_path <- paste0(getwd(), "/OpenDashboard_Configurations.xlsx")
 conf_sp <- as.data.frame(read_excel(conf_path, "SpatialData"))
 conf_tab <- as.data.frame(read_excel(conf_path, "TableData"))
-
+conf_join <- as.data.frame(read_excel(conf_path, "JoinSpec"))
+pr_dir <- dirname(getwd())
+dat_dir <- paste0(pr_dir, "/Data")
 
 # load spatial data
 lapply(1:nrow(conf_sp), function(x){
   
+  # prepare data path
+  paste0(pr_dir, "/Data/")
+  
   # load data
-  this_obj <- readOGR(dsn = conf_sp[x, "Datapath_noFilename"], layer = conf_sp[x, "Filename_noExt"])
+  this_obj <- readOGR(dsn = dat_dir, layer = conf_sp[x, "Filename_noExt"])
   
   # project to WGS84
   this_obj <- spTransform(this_obj, CRS("+init=epsg:4326"))
@@ -46,21 +57,37 @@ tab_ov <- matrix(NA, nrow = 0, ncol = 4, dimnames = list(c(), c("att_com", "att_
 # load table data and store time information
 lapply(1:nrow(conf_tab), function(x){
   
+  # prepare data path
+  tab_path <- paste0(dat_dir, "/", conf_tab[x, "Filename_ext"])
+  
   # load workbook and get sheet names
-  sh_names <- excel_sheets(conf_tab[x, "Datapath"])
+  sh_names <- excel_sheets(tab_path)
   
   # get sheet data of type 'oDa_time'
   lapply(1:length(sh_names), function(y){
+    
+    # filter for data sheets which were prepared for OpenDashboard
     this_split <- strsplit(sh_names[y], "_", fixed = T)[[1]]
+    
     if (length(this_split) > 0){
+      
       if (this_split[1] == "oDa"){
-        this_obj <- as.data.frame(read_excel(conf_tab[x, "Datapath"], sh_names[y]))
+        
+        this_obj <- as.data.frame(read_excel(tab_path, sh_names[y]))
         
         # prepare nice attribute names
         nice_names <- gsub(x = colnames(this_obj), pattern = '\r', replacement = "", fixed = T)
         nice_names <- gsub(x = nice_names, pattern = '\n', replacement = "-", fixed = T)
         nice_names <- gsub(x = nice_names, pattern = ' -', replacement = "-", fixed = T)
         nice_names <- gsub(x = nice_names, pattern = '  ', replacement = " ", fixed = T)
+        nice_names <- gsub(x = nice_names, pattern = '- ', replacement = "-", fixed = T)
+        nice_names <- gsub(x = nice_names, pattern = '__', replacement = "_", fixed = T)
+        
+        # remove artefacts
+        pos <- which(substr(nice_names, 1, 1) == "-")
+        if (length(pos > 0)) nice_names[pos] <- substr(nice_names[pos], 2, nchar(nice_names[pos]))
+        pos <- which(substr(nice_names, nchar(nice_names), nchar(nice_names)) == "-")
+        if (length(pos > 0)) nice_names[pos] <- substr(nice_names[pos], 1, nchar(nice_names[pos]) - 1)
         
         # store time information and nice names in table overview
         tab_ov <<- rbind(tab_ov, cbind(colnames(this_obj),                                       # attribute names as is
@@ -80,14 +107,77 @@ lapply(1:nrow(conf_tab), function(x){
   })
 })
 
+# save all available attributes
+all_atts <- tab_ov[-which(tab_ov == conf_join[1, 1]), 2]
+
+# prepare spatial data for joining
+lapply(1:nrow(conf_sp), function(x){
+  
+  # extract attribute table
+  assign(paste0(conf_sp[x, 1], "_dat"), get(conf_sp[x,1])@data, envir = .GlobalEnv)
+  
+  # wrap attribute data in local data frame
+  assign(paste0(conf_sp[x, 1], "_ldf"), tbl_df(get(paste0(conf_sp[x, 1], "_dat"))), envir = .GlobalEnv)
+  print("Loaded sucessfully")
+  
+})
 
 
-# join spatial and table data
+# prepare table data for joining
+tabs <- unique(tab_ov[,"tab_obj"])
+lapply(1:length(tabs), function(x){
+  
+  # wrap  data in local data frame
+  assign(paste0(tabs[x], "_ldf"), tbl_df(get(tabs[x])), envir = .GlobalEnv)
+  print("Loaded sucessfully")
+  
+})
 
 
+# join data
+lapply(1:nrow(conf_sp), function(sp){
+  
+  lapply(1:length(tabs), function(t){
+    
+    # get datasets
+    this_sp <- get(paste0(conf_sp[sp, 1], "_ldf"))
+    this_t <- get(paste0(tabs[t], "_ldf"))
+    
+    # join datasets
+    suppressMessages(assign(paste0(conf_sp[sp, 1], "_ldf"),
+                            left_join(x = this_sp, y = this_t, by = conf_join[1,1]),
+                            envir = .GlobalEnv))
+    print("Joined successfully")
+    
+  })
+  
+})
+
+
+
+# overwrite attribute table with joined data
+lapply(1:nrow(conf_sp), function(x){
+  
+  # convert local data frame to regular data frame
+  this_dat <- data.frame(get(paste0(conf_sp[x, 1], "_ldf")))
+  
+  # get nice attribute names with time information
+  nice_names <- all_atts
+  nice_names <- paste0(nice_names, "_timeSep_", tab_ov[-which(tab_ov == conf_join[1, 1]), 3])
+  
+  # assign nice attribute names
+  pos <- which((colnames(this_dat) %in% colnames(get(conf_sp[x, 1])@data)) == F)
+  colnames(this_dat)[pos] <- nice_names
+  
+  # overwrite attribute table
+  this_sp <- get(conf_sp[x, 1])
+  this_sp@data <- this_dat
+  assign(conf_sp[x, 1], this_sp, envir = .GlobalEnv)
+  assign(paste0(conf_sp[x, 1], "_dat"), this_dat, envir = .GlobalEnv)
+  
+})
 
 # define colors
 mycol_1 <- rgb(0, 176, 240, maxColorValue = 255)
 mycol_2 <- rgb(237, 125, 49, maxColorValue = 255)
-
 
