@@ -6,6 +6,7 @@
 
 # set working directory for debugging
 # setwd("/media/sf_Raumanalysen_ChristianMueller/Projekte/OpenDashboard/OpenDashboard")
+# setwd("C:/Raumanalysen_ChristianMueller/Projekte/OpenDashboard/OpenDashboard")
 
 
 # call libraries
