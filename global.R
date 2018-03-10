@@ -19,6 +19,7 @@ library(sp)
 library(classInt)
 library(highcharter)
 library(extrafont)
+library(flexdashboard)
 
 # # load fonts
 # font_import()

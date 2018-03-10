@@ -90,6 +90,64 @@ shinyUI(
                                    
                      )
                      
+                 ),
+                 
+                 # logo division
+                 div(class = "controls", align = "center",
+                     
+                     # logo panel
+                     absolutePanel(id = "logo_pan", class = "panel panel-default", fixed = TRUE,
+                                   draggable = F, top = 930, left = 5, right = 20, bottom = "auto",
+                                   width = 190, height = 120
+                                   
+                                   # logo output
+                                   
+                                   
+                     )
+                     
+                 ),
+                 
+                 # gauges division
+                 div(class = "controls", align = "center",
+                     
+                     # gauge panels
+                     absolutePanel(id = "gauge_pan1", class = "panel panel-default", fixed = TRUE,
+                                   draggable = F, top = 930, left = 203, right = 20, bottom = "auto",
+                                   width = 200, height = 120,
+                                   
+                                   # gauge output
+                                   gaugeOutput("gauge1", width = "100%", height = 120)
+                                   
+                     ),
+                     absolutePanel(id = "gauge_pan2", class = "panel panel-default", fixed = TRUE,
+                                   draggable = F, top = 930, left = 406, right = 20, bottom = "auto",
+                                   width = 200, height = 120,
+                                   
+                                   # gauge output
+                                   gaugeOutput("gauge2", width = "100%", height = 120)
+                     ),
+                     absolutePanel(id = "gauge_pan3", class = "panel panel-default", fixed = TRUE,
+                                   draggable = F, top = 930, left = 609, right = 20, bottom = "auto",
+                                   width = 200, height = 120,
+                                   
+                                   # gauge output
+                                   gaugeOutput("gauge3", width = "100%", height = 120)
+                     ),
+                     absolutePanel(id = "gauge_pan4", class = "panel panel-default", fixed = TRUE,
+                                   draggable = F, top = 930, left = 812, right = 20, bottom = "auto",
+                                   width = 200, height = 120,
+                                   
+                                   # gauge output
+                                   gaugeOutput("gauge4", width = "100%", height = 120)
+                     ),
+                     absolutePanel(id = "gauge_pan5", class = "panel panel-default", fixed = TRUE,
+                                   draggable = F, top = 930, left = 1015, right = 20, bottom = "auto",
+                                   width = 200, height = 120,
+                                   
+                                   # gauge output
+                                   gaugeOutput("gauge5", width = "100%", height = 120)
+                     )
+                     
                  )
                  
                )

@@ -157,7 +157,33 @@ function(input, output, session){
 
   })
 
-
+  # create gauges
+  output$gauge1 <- renderGauge({
+    gauge(87, min = 0, max = 100, label = "Einwohner",
+          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+  })
+  
+  output$gauge2 <- renderGauge({
+    gauge(32, min = 0, max = 100, label = "Familien mit mehr als 3 Kindern",
+          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+  })
+  
+  output$gauge3 <- renderGauge({
+    gauge(44, min = 0, max = 100, label = "Grundsicherung im Alter",
+          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+  })
+  
+  output$gauge4 <- renderGauge({
+    gauge(10, min = 0, max = 100, label = "unter 10-Jährige",
+          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+  })
+  
+  output$gauge5 <- renderGauge({
+    gauge(55, min = 0, max = 100, label = "SGB-II-Empfänger",
+          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+  })
+  
+  
   # quit session when browser is closed
   # session$onSessionEnded(function() {
   #   stopApp()
