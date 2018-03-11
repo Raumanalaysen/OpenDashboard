@@ -20,6 +20,8 @@ library(classInt)
 library(highcharter)
 library(extrafont)
 library(flexdashboard)
+library(png)
+library(RColorBrewer)
 
 # # load fonts
 # font_import()
@@ -210,3 +212,8 @@ t.max <- max(times, na.rm = T)
 this_time <- t.max
 this_sp <- get(this_sp_char)
 this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
+
+# load logo
+# logo <- readPNG(paste0(getwd(), "/Logo.png"))
+logoPath <- paste0(getwd(), "/logo.png")
+
