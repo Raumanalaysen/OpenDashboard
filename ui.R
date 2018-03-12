@@ -97,10 +97,8 @@ shinyUI(
                                    width = 800, height = 425,
                                    
                                    # scatterplot output
-                                   plotOutput('scatterplot_1')
-                                   
-                                   
-                                   
+                                   p(),
+                                   plotlyOutput('scatterplot_1', height = "400px")
                                    
                                    
                      )

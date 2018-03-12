@@ -22,6 +22,7 @@ library(extrafont)
 library(flexdashboard)
 library(png)
 library(RColorBrewer)
+library(plotly)
 
 # # load fonts
 # font_import()

@@ -224,6 +224,9 @@ function(input, output, session){
     this_sp_char <- input$sp_sel
     this_att <- input$att_sel
     this_time <- input$time_sel
+    # this_sp_char <- "Stadtteil"
+    # this_att <- "Einwohner"
+    # this_time <- "2017"
     this_sp <- get(this_sp_char)
     this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
     
@@ -236,11 +239,23 @@ function(input, output, session){
       this_att_show <- paste(this_att, "in %", sep = " ")
     }
     
+    # prepare data
+    # o <- rev(order(this_dat))
+    # plot_x <- paste0(1:length(this_dat), " ", this_sp@data[,conf_join[1, 1]][o])
+    # plot_y <- this_dat[o]
+    # 
+    # # create barplot
+    # b_p <- plot_ly(x = plot_x,
+    #                y = plot_y,
+    #                type = "bar")
+    # b_p
+    
+    
     # define theme
     thm <- hc_theme(
       colors = c('red', 'green', 'blue'),
       chart = list(style = list(fontFamily = "Ebrima")))
-    
+
     # create barplot
     chart <- highchart() %>%
       hc_chart(type = 'column') %>%
@@ -248,10 +263,10 @@ function(input, output, session){
       hc_xAxis(categories = this_sp@data[,conf_join[1, 1]]) %>%
       hc_yAxis(title = list(text = paste0(this_att_show, " (", this_time, ")"))) %>%
       hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
-      hc_add_series(name = this_att_show, data = round(rev(sort(this_dat)), digits = 3)) %>% 
+      hc_add_series(name = this_att_show, data = round(rev(sort(this_dat)), digits = 3)) %>%
       hc_title(text = "Ranking") %>%
-      hc_colors(c('#FF6430', '#FF6430')) %>% 
-      hc_add_theme(hc_theme(thm)) %>% 
+      hc_colors(c('#FF6430', '#FF6430')) %>%
+      hc_add_theme(hc_theme(thm)) %>%
       hc_add_theme(thm)
       chart
       
@@ -259,31 +274,31 @@ function(input, output, session){
 
 
   # create scatterplot
-  output$scatterplot_1 <- renderPlot({
+  output$scatterplot_1 <- renderPlotly({
 
     # get reactive values
     this_sp_char <- input$sp_sel
     this_att <- input$att_sel
     this_time <- input$time_sel
+    # this_sp_char <- "Stadtteil"
+    # this_att <- "Einwohner"
+    # this_time <- "2017"
+    
     this_sp <- get(this_sp_char)
     this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
     
     # prepare data
     plot_x <- 2000:2018
-    plot_y <- rnorm(19, 4000, 200)
-
-    # set up graphic parameters
-    par(mar = c(5.1, 4.1, 4.1, 1))
+    plot_y <- round(rnorm(19, 4000, 200), 0)
+    plot_data <- data.frame(plot_x, plot_y)
 
     # create scatterplot
-    plot(x = plot_x, y = plot_y,
-         main = "Einwohnerzahlen für den Stadtteil 'Thorr' (Mock-up-Daten!!!)",
-         xlab = "Jahr", ylab = "Einwohnerzahl (Mock-up-Daten!!!)",
-         type = "l", col = mycol_1, lwd = 5, axes = F)
-
-    # add axes
-    axis(1, at = 2000:2018)
-    axis(2)
+    par(xpd = T)
+    sc_p <- plot_ly(plot_data, x = plot_x) %>%
+      add_lines(y = plot_y, line = list(shape = "spline")) %>% 
+      layout(title = "Zeitliche Entwicklung im gewählten Gebiet",
+             xaxis = list(title = "Zeit in Jahren"), yaxis = list(title = this_att))
+    sc_p
 
   })
 
