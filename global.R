@@ -33,7 +33,7 @@ conf_path <- paste0(getwd(), "/OpenDashboard_Configurations.xlsx")
 conf_sp <- as.data.frame(read_excel(conf_path, "SpatialData"))
 conf_tab <- as.data.frame(read_excel(conf_path, "TableData"))
 conf_join <- as.data.frame(read_excel(conf_path, "JoinSpec"))
-pr_dir <- dirname(getwd())
+pr_dir <- getwd()
 dat_dir <- paste0(pr_dir, "/Data")
 
 # load spatial data
