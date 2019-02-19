@@ -31,7 +31,7 @@ shinyUI(
                                                  width = 108, height = 108,
                                                  
                                                  # link to webpage
-                                                 a(href = "https://raumanalysen.net/",
+                                                 a(href = "https://raumanalysen.de",
                                                    
                                                    # logo output
                                                    plotOutput('logo')
@@ -43,6 +43,7 @@ shinyUI(
                                    h5("Räumliche Ebene", align = "center"),
                                    selectInput(inputId = "sp_sel", label = NULL, choices = conf_sp[,2], selectize = T),
                                    
+                                   
                                    # select attribute
                                    h5("Kenngröße", align = "center"),
                                    uiOutput("att_sel_out"),
@@ -50,6 +51,7 @@ shinyUI(
                                    # select time
                                    h5("Zeit", align = "center"),
                                    uiOutput("time_sel_out")
+                                   
                                    
                                    
                                    
@@ -83,7 +85,7 @@ shinyUI(
                                    width = 800, height = 425,
                                    
                                    # barplot output
-                                   highchartOutput('barplot_1')
+                                   plotlyOutput('barplot_1')
                                    
                      )
                      

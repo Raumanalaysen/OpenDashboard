@@ -17,12 +17,13 @@ library(dplyr)
 library(leaflet)
 library(sp)
 library(classInt)
-library(highcharter)
 library(extrafont)
 library(flexdashboard)
 library(png)
 library(RColorBrewer)
 library(plotly)
+library(shiny)
+library(stringr)
 
 # # load fonts
 # font_import()
@@ -218,3 +219,12 @@ this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
 # logo <- readPNG(paste0(getwd(), "/Logo.png"))
 logoPath <- paste0(getwd(), "/logo.png")
 
+# set colors
+myred <- rgb(244,100,48, maxColorValue = 255)
+myblue <- rgb(86,170,179, maxColorValue = 255)
+
+# create reactive value for clicked selection
+sel_ob <- reactiveValues()
+sel_ob$sel <- NULL
+a_clicked_names <- reactiveValues()
+a_clicked_names$names <- NULL

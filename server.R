@@ -196,6 +196,11 @@ function(input, output, session){
       leg_cols <- "blue"
     }
     
+    # make colors globally available
+    cols <<- cols
+    leg_cols <<- leg_cols
+    
+    
     
     # create map object
     map <- leaflet() %>%
@@ -205,30 +210,107 @@ function(input, output, session){
                 lat1 = this_sp@bbox[2,1], lat2 = this_sp@bbox[2,2]) %>%
 
       # add legend
-      addLegend(position = "bottomleft", colors = leg_cols, label = leg_lab)
+      addLegend(position = "bottomleft", colors = leg_cols, label = leg_lab) %>% 
 
 
-    # add polygons
-    map <- addPolygons(map = map, data = this_sp, fillColor = cols, color = "white",
-                       opacity = 1, fillOpacity = 1, weight = 3)
+      # add polygons
+      addPolygons(data = this_sp, layerId = ~id, fillColor = cols, color = "white",
+                  opacity = 1, fillOpacity = 1, weight = 3, label = this_sp@data[,2],
+                  group = "not_highlighted")
 
-    map
 
+  })
+  
+  
+  # observe selected objects and highlight in map
+  observe({
+    
+    # get spatial objects
+    this_sp <- get(input$sp_sel)
+    
+    # get selected ids, objects and colors
+    if (length(sel_ob$sel) > 0){
+      pos <- which(this_sp$id %in% sel_ob$sel)
+      use_sp <- this_sp[pos,]
+      use_cols <- cols[pos]
+      nuse_sp <- this_sp[-pos,]
+      nuse_cols <- cols[-pos]
+    
+      # create map proxy and clear shapes
+      map_proxy <- leafletProxy("map")
+      map_proxy %>% clearShapes()
+      
+      # add not highlighted polygons  
+      if (nrow(nuse_sp@data) > 0){
+        map_proxy %>% addPolygons(data = nuse_sp, layerId = ~id, fillColor = nuse_cols, color = "white",
+                                  opacity = 1, fillOpacity = 1, weight = 3, label = nuse_sp@data[,2],
+                                  group = "not_highlighted")
+      }
+      
+      # add highlighted polygons
+      map_proxy %>% addPolygons(data = use_sp, layerId = ~id, fillColor = use_cols, color = myred,
+                                opacity = 1, fillOpacity = 1, weight = 3, label = use_sp@data[,2],
+                                group = "highlighted")
+      
+    }
+    
+  })
+  
+  # redraw map if no object is selected
+  observeEvent(sel_ob$sel, {
+    if (length(sel_ob$sel) == 0){
+      this_sp <- get(input$sp_sel)
+      leafletProxy("map") %>% 
+        clearShapes() %>% 
+        addPolygons(data = this_sp, layerId = ~id, fillColor = cols, color = "white",
+                    opacity = 1, fillOpacity = 1, weight = 3, label = this_sp@data[,2],
+                    group = "not_highlighted")
+    }
+  })
+  
+  # observe spatial unit selection, clear selected objects
+  observeEvent(input$sp_sel, {
+    sel_ob$sel <- NULL
+    a_clicked_names$names <- NULL
+  })
+  
+  
+  # observe clicked objects on the map
+  observeEvent(input$map_shape_click, {
+    shape_clicked <- input$map_shape_click$id
+    if (shape_clicked %in% sel_ob$sel){
+      hit_pos <- which(sel_ob$sel == shape_clicked)
+      sel_ob$sel <- sel_ob$sel[-hit_pos]
+    } else {
+      sel_ob$sel <- c(sel_ob$sel, shape_clicked)
+    }
   })
 
 
   # create barplot
-  output$barplot_1 <- renderHighchart({
+  output$barplot_1 <- renderPlotly({
     
     # get reactive values
+    this_sp <- get(input$sp_sel)
     this_sp_char <- input$sp_sel
     this_att <- input$att_sel
     this_time <- input$time_sel
-    # this_sp_char <- "Stadtteil"
+    sel <- sel_ob$sel
+    # this_sp <- get("Stadtteil")
     # this_att <- "Einwohner"
     # this_time <- "2017"
-    this_sp <- get(this_sp_char)
+    # sel <- c("1", "5", "14")
     this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
+    
+    # # get category names
+    # if (length(this_sp@data[,2]) == 1) cat_names <- list(this_sp@data[,2]) else cat_names <- this_sp@data[,2]
+    
+    # get bar colors
+    bar_cols <- rep(myblue, times = nrow(this_sp@data))
+    if (length(sel) > 0){
+      pos <- which(as.character(this_sp$id) %in% sel)
+      bar_cols[pos] <- myred
+    }
     
     # detect and convert percentage values
     perc <- F
@@ -239,93 +321,246 @@ function(input, output, session){
       this_att_show <- paste(this_att, "in %", sep = " ")
     }
     
-    # prepare data
-    # o <- rev(order(this_dat))
-    # plot_x <- paste0(1:length(this_dat), " ", this_sp@data[,conf_join[1, 1]][o])
-    # plot_y <- this_dat[o]
-    # 
-    # # create barplot
-    # b_p <- plot_ly(x = plot_x,
-    #                y = plot_y,
-    #                type = "bar")
-    # b_p
     
+    # gather data and order bars
+    ord <- rev(order(this_dat))
+    cat_names <- this_sp@data[,2]
+    data <- data.frame(cat_names, this_dat, bar_cols, stringsAsFactors = FALSE)
+    data$cat_names <- factor(data$cat_names, levels = unique(data$cat_names)[order(data$this_dat, decreasing = TRUE)])
+    data$bar_cols <- factor(data$bar_cols, levels = unique(data$bar_cols)[order(data$this_dat, decreasing = TRUE)])
     
-    # define theme
-    thm <- hc_theme(
-      colors = c('red', 'green', 'blue'),
-      chart = list(style = list(fontFamily = "Ebrima")))
-
-    # create barplot
-    chart <- highchart() %>%
-      hc_chart(type = 'column') %>%
-      hc_legend(enabled = FALSE) %>%
-      hc_xAxis(categories = this_sp@data[,conf_join[1, 1]]) %>%
-      hc_yAxis(title = list(text = paste0(this_att_show, " (", this_time, ")"))) %>%
-      hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
-      hc_add_series(name = this_att_show, data = round(rev(sort(this_dat)), digits = 3)) %>%
-      hc_title(text = "Ranking") %>%
-      hc_colors(c('#FF6430', '#FF6430')) %>%
-      hc_add_theme(hc_theme(thm)) %>%
-      hc_add_theme(thm)
-      chart
-      
+    # draw plot
+    b_plot <- plot_ly(data, x = ~cat_names, y = ~this_dat, type = "bar",
+                      text = this_dat, textposition = "auto",
+                      marker = list(color = ~bar_cols)) %>% 
+      layout(title = "Ranking", xaxis = list(title = ""), yaxis = list(title = this_att_show))
   })
 
+  
+  # observe click events in barplot
+  observe({
+    b_clicked <- event_data("plotly_click")$x
+    # b_selected <- event_data("plotly_selected")$x
+    # a_clicked_names$names <- unique(c(b_clicked, b_selected))
+    a_clicked_names$names <- b_clicked
+  })
+    
+  # observe reactive value for click events in barplot
+  observeEvent(a_clicked_names$names, {
+    a_clicked_names <- a_clicked_names$names
+    this_sp <- get(input$sp_sel)
+    pos <- which((this_sp@data[,2] %in% a_clicked_names))
+    a_clicked <- as.character(this_sp@data[pos,1])
+    if (length(a_clicked) > 0){
+      if (any(a_clicked %in% sel_ob$sel)){
+        hit_pos <- which(sel_ob$sel == a_clicked)
+        sel_ob$sel <<- sel_ob$sel[-hit_pos]
+      } else {
+        sel_ob$sel <<- c(sel_ob$sel, a_clicked)
+      }
+    }
+  })
+  
 
   # create scatterplot
   output$scatterplot_1 <- renderPlotly({
 
-    # get reactive values
-    this_sp_char <- input$sp_sel
+    # get data
+    this_dat <- get(input$sp_sel)@data
     this_att <- input$att_sel
     this_time <- input$time_sel
-    # this_sp_char <- "Stadtteil"
-    # this_att <- "Einwohner"
-    # this_time <- "2017"
     
-    this_sp <- get(this_sp_char)
-    this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
+    # get all available time steps
+    av_atts <- str_subset(colnames(this_dat), this_att)
+    av_cols <- str_which(colnames(this_dat), this_att)
+    av_times <- as.numeric(str_sub(av_atts, -4))
+    sel <- as.numeric(sel_ob$sel)
+    
+    # this_dat <- get("Stadtteil")@data
+    # this_dat <- get("Sozialraum")@data
+    # this_att <- "0-5 Jahre"
+    # this_time <- "2017"
+    # sel <- c()
+    # sel <- c("7", "1", "2", "5")
+    
+    this_dat_att <- this_dat[,av_cols]
+    
     
     # prepare data
-    plot_x <- 2000:2018
-    plot_y <- round(rnorm(19, 4000, 200), 0)
-    plot_data <- data.frame(plot_x, plot_y)
-
+    if (length(sel) == 0){
+      y_dat <- as.data.frame(colMeans(this_dat_att))
+      colnames(y_dat) <- "y"
+      dat <- cbind(y_dat, x = av_times)
+      dat <- cbind(dat, label = "Durchschnitt")
+    } else {
+      pos <- which(as.character(this_dat$id) %in% sel)
+      labels <- this_dat[pos,2]
+      y_dat <- as.data.frame(t(this_dat_att[pos[1],]))
+      colnames(y_dat) <- "y"
+      dat <- cbind(y_dat, x = av_times)
+      dat <- cbind(dat, label = labels[1])
+      if (length(sel) > 1){
+        lapply(2:length(sel), function(i){
+          temp <- as.data.frame(t(this_dat_att[pos[i],]))
+          colnames(temp) <- "y"
+          temp <- cbind(temp, x = av_times)
+          temp <- cbind(temp, label = labels[i])
+          dat <<- rbind(dat, temp)
+        })
+      }
+    }
+    
+    
     # create scatterplot
     par(xpd = T)
-    sc_p <- plot_ly(plot_data, x = plot_x) %>%
-      add_lines(y = plot_y, line = list(shape = "spline")) %>% 
+    sc_p <- plot_ly(dat, x = ~x,  y = ~y, color = ~label,
+                    type = "scatter", mode = "lines", line = list(shape = "spline")) %>% 
       layout(title = "Zeitliche Entwicklung im gewählten Gebiet",
              xaxis = list(title = "Zeit in Jahren"), yaxis = list(title = this_att))
     sc_p
 
   })
 
+  
   # create gauges
   output$gauge1 <- renderGauge({
-    gauge(87, min = 0, max = 100, label = "",
-          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+    
+    # prepare data
+    this_dat <- get(input$sp_sel)@data
+    this_att <- input$att_sel_gauge1
+    this_time <- input$time_sel
+    av_atts <- str_subset(colnames(this_dat), this_att)
+    av_cols <- str_which(colnames(this_dat), this_att)
+    sel <- as.numeric(sel_ob$sel)
+    this_dat_att <- this_dat[,av_cols]
+    this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
+    
+    if (length(sel) == 0){
+      g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
+      g_min <- min(this_dat_att, na.rm = T)
+      g_max <- max(this_dat_att, na.rm = T)
+    } else {
+      pos <- which(as.character(this_dat$id) %in% sel)
+      g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
+      g_min <- min(this_dat_att[pos,], na.rm = T)
+      g_max <- max(this_dat_att[pos,], na.rm = T)
+    }
+    
+    # create gauge
+    gauge(g_val, min = g_min, max = g_max, label = "")
+    
   })
   
   output$gauge2 <- renderGauge({
-    gauge(32, min = 0, max = 100, label = "",
-          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+    
+    # prepare data
+    this_dat <- get(input$sp_sel)@data
+    this_att <- input$att_sel_gauge2
+    this_time <- input$time_sel
+    av_atts <- str_subset(colnames(this_dat), this_att)
+    av_cols <- str_which(colnames(this_dat), this_att)
+    sel <- as.numeric(sel_ob$sel)
+    this_dat_att <- this_dat[,av_cols]
+    this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
+    
+    if (length(sel) == 0){
+      g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
+      g_min <- min(this_dat_att, na.rm = T)
+      g_max <- max(this_dat_att, na.rm = T)
+    } else {
+      pos <- which(as.character(this_dat$id) %in% sel)
+      g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
+      g_min <- min(this_dat_att[pos,], na.rm = T)
+      g_max <- max(this_dat_att[pos,], na.rm = T)
+    }
+    
+    # create gauge
+    gauge(g_val, min = g_min, max = g_max, label = "")
+    
   })
   
   output$gauge3 <- renderGauge({
-    gauge(44, min = 0, max = 100, label = "",
-          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+   
+    # prepare data
+    this_dat <- get(input$sp_sel)@data
+    this_att <- input$att_sel_gauge3
+    this_time <- input$time_sel
+    av_atts <- str_subset(colnames(this_dat), this_att)
+    av_cols <- str_which(colnames(this_dat), this_att)
+    sel <- as.numeric(sel_ob$sel)
+    this_dat_att <- this_dat[,av_cols]
+    this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
+    
+    if (length(sel) == 0){
+      g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
+      g_min <- min(this_dat_att, na.rm = T)
+      g_max <- max(this_dat_att, na.rm = T)
+    } else {
+      pos <- which(as.character(this_dat$id) %in% sel)
+      g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
+      g_min <- min(this_dat_att[pos,], na.rm = T)
+      g_max <- max(this_dat_att[pos,], na.rm = T)
+    }
+    
+    # create gauge
+    gauge(g_val, min = g_min, max = g_max, label = "")
+    
   })
   
   output$gauge4 <- renderGauge({
-    gauge(10, min = 0, max = 100, label = "",
-          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+    
+    # prepare data
+    this_dat <- get(input$sp_sel)@data
+    this_att <- input$att_sel_gauge4
+    this_time <- input$time_sel
+    av_atts <- str_subset(colnames(this_dat), this_att)
+    av_cols <- str_which(colnames(this_dat), this_att)
+    sel <- as.numeric(sel_ob$sel)
+    this_dat_att <- this_dat[,av_cols]
+    this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
+    
+    if (length(sel) == 0){
+      g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
+      g_min <- min(this_dat_att, na.rm = T)
+      g_max <- max(this_dat_att, na.rm = T)
+    } else {
+      pos <- which(as.character(this_dat$id) %in% sel)
+      g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
+      g_min <- min(this_dat_att[pos,], na.rm = T)
+      g_max <- max(this_dat_att[pos,], na.rm = T)
+    }
+    
+    # create gauge
+    gauge(g_val, min = g_min, max = g_max, label = "")
+    
   })
   
   output$gauge5 <- renderGauge({
-    gauge(55, min = 0, max = 100, label = "",
-          gaugeSectors(success = c(100, 66), warning = c(65, 33), danger = c(32, 0)))
+    
+    # prepare data
+    this_dat <- get(input$sp_sel)@data
+    this_att <- input$att_sel_gauge5
+    this_time <- input$time_sel
+    av_atts <- str_subset(colnames(this_dat), this_att)
+    av_cols <- str_which(colnames(this_dat), this_att)
+    sel <- as.numeric(sel_ob$sel)
+    this_dat_att <- this_dat[,av_cols]
+    this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
+    
+    if (length(sel) == 0){
+      g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
+      g_min <- min(this_dat_att, na.rm = T)
+      g_max <- max(this_dat_att, na.rm = T)
+    } else {
+      pos <- which(as.character(this_dat$id) %in% sel)
+      g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
+      g_min <- min(this_dat_att[pos,], na.rm = T)
+      g_max <- max(this_dat_att[pos,], na.rm = T)
+    }
+    
+    # create gauge
+    gauge(g_val, min = g_min, max = g_max, label = "")
+    
   })
   
   
