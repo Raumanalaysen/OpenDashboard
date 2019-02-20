@@ -5,9 +5,9 @@ account: raumanalysen
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 308991
-bundleId: 1315649
+bundleId: 1885194
 url: https://raumanalysen.shinyapps.io/OpenDashboard/
-when: 1523544948.1094
+when: 1550603559.59967
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: SCREENSHOT_MOCKUP.png

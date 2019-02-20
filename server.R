@@ -9,6 +9,9 @@ function(input, output, session){
   # render attribute drop down menu
   output$att_sel_out <- renderUI({
     
+    # refresh if indicator has been recalculated
+    act <- ind_act$act
+    
     # get spatial data input
     this_sp_char <- input$sp_sel
     # this_sp <- "Stadtgebiet"
@@ -20,9 +23,16 @@ function(input, output, session){
     av_atts <- av_atts[av_atts %in% all_atts]
     
     # create drop down menu
-    selectInput(inputId = "att_sel", label = NULL, selectize = T, choices = sort(av_atts))
+    if (last_att == ""){
+      selectInput(inputId = "att_sel", label = NULL, selectize = T, choices = sort(av_atts))
+    } else {
+      selectInput(inputId = "att_sel", label = NULL, selectize = T, choices = sort(av_atts), selected = last_att)
+    }
     
   })
+  
+  # remember last selected attribute
+  observeEvent(input$att_sel, last_att <<- input$att_sel)
   
   # render attribute drop down menu for gauge 1
   output$att_sel_out_gauge1 <- renderUI({
@@ -116,6 +126,7 @@ function(input, output, session){
     # get spatial data input
     this_att <- input$att_sel
     # this_att <- "Arbeitslose SGB-II/ SGB-III"
+    # this_att <- "OpenDashboard Indikator"
     
     # get available times
     pos <- which(tab_ov[, "att_nice"] == this_att)
@@ -135,6 +146,9 @@ function(input, output, session){
   # create map
   output$map <- renderLeaflet({
 
+    # refresh if indicator has been recalculated
+    act <- ind_act$act
+    
     # get reactive values
     this_sp_char <- input$sp_sel
     # this_sp_char <- "Stadtgebiet"
@@ -155,10 +169,12 @@ function(input, output, session){
     
     # detect and convert percentage values
     perc <- F
-    if (all(all(this_dat_allT <= 1), all(this_dat_allT >= 0))){
-      perc <- T
-      this_dat <- this_dat * 100
-      this_dat_allT <- this_dat_allT * 100
+    if (this_att != "OpenDashboard Indikator"){
+      if (all(all(this_dat_allT <= 1), all(this_dat_allT >= 0))){
+        perc <- T
+        this_dat <- this_dat * 100
+        this_dat_allT <- this_dat_allT * 100
+      }
     }
     
     
@@ -290,6 +306,9 @@ function(input, output, session){
   # create barplot
   output$barplot_1 <- renderPlotly({
     
+    # refresh if indicator has been recalculated
+    act <- ind_act$act
+    
     # get reactive values
     this_sp <- get(input$sp_sel)
     this_sp_char <- input$sp_sel
@@ -298,9 +317,11 @@ function(input, output, session){
     sel <- sel_ob$sel
     # this_sp <- get("Stadtteil")
     # this_att <- "Einwohner"
+    # this_att <- "OpenDashboard Indikator"
     # this_time <- "2017"
     # sel <- c("1", "5", "14")
     this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
+    
     
     # # get category names
     # if (length(this_sp@data[,2]) == 1) cat_names <- list(this_sp@data[,2]) else cat_names <- this_sp@data[,2]
@@ -315,10 +336,12 @@ function(input, output, session){
     # detect and convert percentage values
     perc <- F
     this_att_show <- this_att
-    if (all(all(this_dat <= 1), all(this_dat >= 0))){
-      perc <- T
-      this_dat <- this_dat * 100
-      this_att_show <- paste(this_att, "in %", sep = " ")
+    if (this_att != "OpenDashboard Indikator"){
+      if (all(all(this_dat <= 1), all(this_dat >= 0))){
+        perc <- T
+        this_dat <- this_dat * 100
+        this_att_show <- paste(this_att, "in %", sep = " ")
+      }
     }
     
     
@@ -329,11 +352,23 @@ function(input, output, session){
     data$cat_names <- factor(data$cat_names, levels = unique(data$cat_names)[order(data$this_dat, decreasing = TRUE)])
     data$bar_cols <- factor(data$bar_cols, levels = unique(data$bar_cols)[order(data$this_dat, decreasing = TRUE)])
     
+    # define axis range
+    av_cols <- str_which(colnames(this_sp@data), paste0("^", this_att, "_?"))
+    this_dat_att <- this_sp@data[,av_cols]
+    ymin_t <- min(this_dat_att, na.rm = T)
+    ymax_t <- max(this_dat_att, na.rm = T)
+    ymin <- ymin_t - ((ymax_t - ymin_t) * 0.05)
+    if (ymin > 0) ymin <- 0
+    ymax <- ymax_t + ((ymax_t - ymin_t) * 0.05)
+    
+    
     # draw plot
+    par(xpd = T)
     b_plot <- plot_ly(data, x = ~cat_names, y = ~this_dat, type = "bar",
-                      text = this_dat, textposition = "auto",
+                      text = round(this_dat, 2), textposition = "auto",
                       marker = list(color = ~bar_cols)) %>% 
-      layout(title = "Ranking", xaxis = list(title = ""), yaxis = list(title = this_att_show))
+      layout(xaxis = list(title = ""),
+             yaxis = list(title = this_att_show, range = c(ymin, ymax)))
   })
 
   
@@ -365,23 +400,26 @@ function(input, output, session){
   # create scatterplot
   output$scatterplot_1 <- renderPlotly({
 
+    # refresh if indicator has been recalculated
+    act <- ind_act$act
+    
     # get data
     this_dat <- get(input$sp_sel)@data
     this_att <- input$att_sel
     this_time <- input$time_sel
-    
-    # get all available time steps
-    av_atts <- str_subset(colnames(this_dat), this_att)
-    av_cols <- str_which(colnames(this_dat), this_att)
-    av_times <- as.numeric(str_sub(av_atts, -4))
-    sel <- as.numeric(sel_ob$sel)
-    
     # this_dat <- get("Stadtteil")@data
     # this_dat <- get("Sozialraum")@data
     # this_att <- "0-5 Jahre"
+    # this_att <- "OpenDashboard Indikator"
     # this_time <- "2017"
     # sel <- c()
     # sel <- c("7", "1", "2", "5")
+    
+    # get all available time steps
+    av_atts <- str_subset(colnames(this_dat), paste0("^", this_att, "_?"))
+    av_cols <- str_which(colnames(this_dat), paste0("^", this_att, "_?"))
+    av_times <- as.numeric(str_sub(av_atts, -4))
+    sel <- as.numeric(sel_ob$sel)
     
     this_dat_att <- this_dat[,av_cols]
     
@@ -429,8 +467,8 @@ function(input, output, session){
     this_dat <- get(input$sp_sel)@data
     this_att <- input$att_sel_gauge1
     this_time <- input$time_sel
-    av_atts <- str_subset(colnames(this_dat), this_att)
-    av_cols <- str_which(colnames(this_dat), this_att)
+    av_atts <- str_subset(colnames(this_dat), paste0("^", this_att, "_?"))
+    av_cols <- str_which(colnames(this_dat), paste0("^", this_att, "_?"))
     sel <- as.numeric(sel_ob$sel)
     this_dat_att <- this_dat[,av_cols]
     this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
@@ -447,7 +485,7 @@ function(input, output, session){
     }
     
     # create gauge
-    gauge(g_val, min = g_min, max = g_max, label = "")
+    gauge(g_val, min = g_min, max = g_max, label = "", gaugeSectors(colors = myblue))
     
   })
   
@@ -457,8 +495,8 @@ function(input, output, session){
     this_dat <- get(input$sp_sel)@data
     this_att <- input$att_sel_gauge2
     this_time <- input$time_sel
-    av_atts <- str_subset(colnames(this_dat), this_att)
-    av_cols <- str_which(colnames(this_dat), this_att)
+    av_atts <- str_subset(colnames(this_dat), paste0("^", this_att, "_?"))
+    av_cols <- str_which(colnames(this_dat), paste0("^", this_att, "_?"))
     sel <- as.numeric(sel_ob$sel)
     this_dat_att <- this_dat[,av_cols]
     this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
@@ -475,7 +513,7 @@ function(input, output, session){
     }
     
     # create gauge
-    gauge(g_val, min = g_min, max = g_max, label = "")
+    gauge(g_val, min = g_min, max = g_max, label = "", gaugeSectors(colors = myblue))
     
   })
   
@@ -485,8 +523,8 @@ function(input, output, session){
     this_dat <- get(input$sp_sel)@data
     this_att <- input$att_sel_gauge3
     this_time <- input$time_sel
-    av_atts <- str_subset(colnames(this_dat), this_att)
-    av_cols <- str_which(colnames(this_dat), this_att)
+    av_atts <- str_subset(colnames(this_dat), paste0("^", this_att, "_?"))
+    av_cols <- str_which(colnames(this_dat), paste0("^", this_att, "_?"))
     sel <- as.numeric(sel_ob$sel)
     this_dat_att <- this_dat[,av_cols]
     this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
@@ -503,7 +541,7 @@ function(input, output, session){
     }
     
     # create gauge
-    gauge(g_val, min = g_min, max = g_max, label = "")
+    gauge(g_val, min = g_min, max = g_max, label = "", gaugeSectors(colors = myblue))
     
   })
   
@@ -513,8 +551,8 @@ function(input, output, session){
     this_dat <- get(input$sp_sel)@data
     this_att <- input$att_sel_gauge4
     this_time <- input$time_sel
-    av_atts <- str_subset(colnames(this_dat), this_att)
-    av_cols <- str_which(colnames(this_dat), this_att)
+    av_atts <- str_subset(colnames(this_dat), paste0("^", this_att, "_?"))
+    av_cols <- str_which(colnames(this_dat), paste0("^", this_att, "_?"))
     sel <- as.numeric(sel_ob$sel)
     this_dat_att <- this_dat[,av_cols]
     this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
@@ -531,7 +569,7 @@ function(input, output, session){
     }
     
     # create gauge
-    gauge(g_val, min = g_min, max = g_max, label = "")
+    gauge(g_val, min = g_min, max = g_max, label = "", gaugeSectors(colors = myblue))
     
   })
   
@@ -541,8 +579,8 @@ function(input, output, session){
     this_dat <- get(input$sp_sel)@data
     this_att <- input$att_sel_gauge5
     this_time <- input$time_sel
-    av_atts <- str_subset(colnames(this_dat), this_att)
-    av_cols <- str_which(colnames(this_dat), this_att)
+    av_atts <- str_subset(colnames(this_dat), paste0("^", this_att, "_?"))
+    av_cols <- str_which(colnames(this_dat), paste0("^", this_att, "_?"))
     sel <- as.numeric(sel_ob$sel)
     this_dat_att <- this_dat[,av_cols]
     this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
@@ -559,10 +597,88 @@ function(input, output, session){
     }
     
     # create gauge
-    gauge(g_val, min = g_min, max = g_max, label = "")
+    gauge(g_val, min = g_min, max = g_max, label = "", gaugeSectors(colors = myblue))
     
   })
   
+  
+  # build indicator
+  observe({
+    
+    if (all(!is.null(input$sp_sel), !is.null(input$att_sel_gauge1), !is.null(input$att_sel_gauge2),
+            !is.null(input$att_sel_gauge3), !is.null(input$att_sel_gauge4), !is.null(input$att_sel_gauge5),
+            !is.null(input$g_w1), !is.null(input$g_w2), !is.null(input$g_w3), !is.null(input$g_w4), !is.null(input$g_w5))){
+    
+      # get reactive values
+      this_sp <- get(input$sp_sel)
+      # this_sp <- get("Stadtteil")
+      this_att1 <- input$att_sel_gauge1
+      this_att2 <- input$att_sel_gauge2
+      this_att3 <- input$att_sel_gauge3
+      this_att4 <- input$att_sel_gauge4
+      this_att5 <- input$att_sel_gauge5
+      # this_att1 <- "Einwohner"
+      # this_att2 <- "Haushalte"
+      # this_att3 <- "Frauen"
+      # this_att4 <- "U18"
+      # this_att5 <- "Single-Haushalte"
+      w1 <- input$g_w1
+      w2 <- input$g_w2
+      w3 <- input$g_w3
+      w4 <- input$g_w4
+      w5 <- input$g_w5
+      # w1 <- 0
+      # w2 <- 0.3
+      # w3 <- 0.7
+      # w4 <- -0.2
+      # w5 <- -0.8
+  
+      # get data for all years, normalize and remove column names
+      lapply(1:5, function(i) {
+        assign(paste0("av_atts", i), str_subset(colnames(this_sp@data), paste0("^", get(paste0("this_att", i)), "_?")), envir = .GlobalEnv)
+        assign(paste0("av_cols", i), str_which(colnames(this_sp@data), paste0("^", get(paste0("this_att", i)), "_?")), envir = .GlobalEnv)
+        assign(paste0("this_dat_att", i), this_sp@data[,get(paste0("av_cols", i))], envir = .GlobalEnv)
+        dat <- as.matrix(get(paste0("this_dat_att", i)))
+        dat_min <- min(dat, na.rm = T)
+        dat_max <- max(dat, na.rm = T)
+        assign(paste0("this_dat_att_n", i), rescale(x = dat, from = c(dat_min, dat_max), to = c(0, 1)), envir = .GlobalEnv)
+      })
+     
+      
+      # calculate indicator (for all years)
+      ind_dat <- (this_dat_att_n1 * w1) + (this_dat_att_n2 * w2) + (this_dat_att_n3 * w3) +
+        (this_dat_att_n4 * w4) + (this_dat_att_n5 * w5)
+      
+      # rename indicator data
+      av_times <- str_sub(colnames(this_dat_att1), -4)
+      colnames(ind_dat) <- paste0("OpenDashboard Indikator_timeSep_", av_times)
+      
+      # add data to spatial object
+      if (all(colnames(ind_dat) %in% colnames(this_sp@data))){
+        pos <- which(colnames(this_sp@data) == colnames(ind_dat)[1])
+        this_sp@data[,pos:(pos + ncol(ind_dat) - 1)] <- ind_dat
+      } else {
+        this_sp@data <- cbind(this_sp@data, ind_dat)
+      }
+      assign(input$sp_sel, this_sp, envir = .GlobalEnv)
+      
+      # add entry to attribute overview
+      if (!("OpenDashboard Indikator" %in% all_atts)) all_atts <<- c(all_atts, "OpenDashboard Indikator")
+      if (!("OpenDashboard Indikator" %in% tab_ov[,1])){
+        temp <- matrix(NA, nrow = length(av_times), ncol = 4)
+        temp[,1] <- "OpenDashboard Indikator"
+        temp[,2] <- "OpenDashboard Indikator"
+        temp[,3] <- av_times
+        temp[,4] <- paste0("OpenDashboardIndikator_", av_times)
+        tab_ov <<- rbind(tab_ov, temp)
+      }
+      
+      # trigger events through reactive value
+      ind_act$act <- Sys.time()
+      
+    }
+    
+  })
   
   # add logo
   output$logo <- renderImage({

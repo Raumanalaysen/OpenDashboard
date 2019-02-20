@@ -24,6 +24,7 @@ library(RColorBrewer)
 library(plotly)
 library(shiny)
 library(stringr)
+library(scales)
 
 # # load fonts
 # font_import()
@@ -223,8 +224,13 @@ logoPath <- paste0(getwd(), "/logo.png")
 myred <- rgb(244,100,48, maxColorValue = 255)
 myblue <- rgb(86,170,179, maxColorValue = 255)
 
+# set last selected attribute
+last_att <- ""
+
 # create reactive value for clicked selection
 sel_ob <- reactiveValues()
 sel_ob$sel <- NULL
 a_clicked_names <- reactiveValues()
 a_clicked_names$names <- NULL
+ind_act <- reactiveValues()
+ind_act$act <- F
