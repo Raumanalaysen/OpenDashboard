@@ -473,15 +473,16 @@ function(input, output, session){
     this_dat_att <- this_dat[,av_cols]
     this_dat_att_t <- this_dat[,paste0(this_att, "_timeSep_", this_time)]
     
+    
     if (length(sel) == 0){
       g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
-      g_min <- min(this_dat_att, na.rm = T)
-      g_max <- max(this_dat_att, na.rm = T)
+      g_min <- round(min(this_dat_att, na.rm = T), 2)
+      g_max <- round(max(this_dat_att, na.rm = T), 2)
     } else {
       pos <- which(as.character(this_dat$id) %in% sel)
       g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
-      g_min <- min(this_dat_att[pos,], na.rm = T)
-      g_max <- max(this_dat_att[pos,], na.rm = T)
+      g_min <- round(min(this_dat_att[pos,], na.rm = T), 2)
+      g_max <- round(max(this_dat_att[pos,], na.rm = T), 2)
     }
     
     # create gauge
@@ -503,13 +504,13 @@ function(input, output, session){
     
     if (length(sel) == 0){
       g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
-      g_min <- min(this_dat_att, na.rm = T)
-      g_max <- max(this_dat_att, na.rm = T)
+      g_min <- round(min(this_dat_att, na.rm = T), 2)
+      g_max <- round(max(this_dat_att, na.rm = T), 2)
     } else {
       pos <- which(as.character(this_dat$id) %in% sel)
       g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
-      g_min <- min(this_dat_att[pos,], na.rm = T)
-      g_max <- max(this_dat_att[pos,], na.rm = T)
+      g_min <- round(min(this_dat_att[pos,], na.rm = T), 2)
+      g_max <- round(max(this_dat_att[pos,], na.rm = T), 2)
     }
     
     # create gauge
@@ -531,13 +532,13 @@ function(input, output, session){
     
     if (length(sel) == 0){
       g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
-      g_min <- min(this_dat_att, na.rm = T)
-      g_max <- max(this_dat_att, na.rm = T)
+      g_min <- round(min(this_dat_att, na.rm = T), 2)
+      g_max <- round(max(this_dat_att, na.rm = T), 2)
     } else {
       pos <- which(as.character(this_dat$id) %in% sel)
       g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
-      g_min <- min(this_dat_att[pos,], na.rm = T)
-      g_max <- max(this_dat_att[pos,], na.rm = T)
+      g_min <- round(min(this_dat_att[pos,], na.rm = T), 2)
+      g_max <- round(max(this_dat_att[pos,], na.rm = T), 2)
     }
     
     # create gauge
@@ -559,13 +560,13 @@ function(input, output, session){
     
     if (length(sel) == 0){
       g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
-      g_min <- min(this_dat_att, na.rm = T)
-      g_max <- max(this_dat_att, na.rm = T)
+      g_min <- round(min(this_dat_att, na.rm = T), 2)
+      g_max <- round(max(this_dat_att, na.rm = T), 2)
     } else {
       pos <- which(as.character(this_dat$id) %in% sel)
       g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
-      g_min <- min(this_dat_att[pos,], na.rm = T)
-      g_max <- max(this_dat_att[pos,], na.rm = T)
+      g_min <- round(min(this_dat_att[pos,], na.rm = T), 2)
+      g_max <- round(max(this_dat_att[pos,], na.rm = T), 2)
     }
     
     # create gauge
@@ -587,13 +588,13 @@ function(input, output, session){
     
     if (length(sel) == 0){
       g_val <- round(mean(this_dat_att_t, na.rm = T), 0)
-      g_min <- min(this_dat_att, na.rm = T)
-      g_max <- max(this_dat_att, na.rm = T)
+      g_min <- round(min(this_dat_att, na.rm = T), 2)
+      g_max <- round(max(this_dat_att, na.rm = T), 2)
     } else {
       pos <- which(as.character(this_dat$id) %in% sel)
       g_val <- round(mean(this_dat_att_t[pos], na.rm = T), 0)
-      g_min <- min(this_dat_att[pos,], na.rm = T)
-      g_max <- max(this_dat_att[pos,], na.rm = T)
+      g_min <- round(min(this_dat_att[pos,], na.rm = T), 2)
+      g_max <- round(max(this_dat_att[pos,], na.rm = T), 2)
     }
     
     # create gauge
@@ -690,9 +691,18 @@ function(input, output, session){
   
   
   # quit session when browser is closed
-  # session$onSessionEnded(function() {
-  #   stopApp()
-  #   q("no")
-  # })
+  observe({
+    if (input$close > 0){
+      
+      # clear temp-files
+      projFiles <- list.files(dirname(getwd()), full.names = T)
+      tempFilesPos <- grepl("^[0-9],[0-9]", basename(projFiles))
+      tempFiles <- projFiles[tempFilesPos]
+      for (x in tempFiles) file.remove(x)
+      
+      # stop session
+      stopApp()
+    }
+  })
   
 }

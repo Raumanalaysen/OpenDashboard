@@ -38,6 +38,7 @@ conf_join <- as.data.frame(read_excel(conf_path, "JoinSpec"))
 pr_dir <- getwd()
 dat_dir <- paste0(pr_dir, "/Data")
 
+
 # load spatial data
 lapply(1:nrow(conf_sp), function(x){
   
@@ -79,7 +80,14 @@ lapply(1:nrow(conf_tab), function(x){
       
       if (this_split[1] == "oDa"){
         
+        # load data
         this_obj <- as.data.frame(read_excel(tab_path, sh_names[y]))
+        
+        # replace corrupted data
+        this_obj[is.na(this_obj)] <- 0
+        this_obj[this_obj == "*"] <- 0
+        this_obj[this_obj == "-"] <- 0
+        this_obj[this_obj == ""] <- 0
         
         # prepare nice attribute names
         nice_names <- gsub(x = colnames(this_obj), pattern = '\r', replacement = "", fixed = T)

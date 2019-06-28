@@ -253,6 +253,15 @@ shinyUI(
                      
                  )
                  
+               ),
+               
+               # create close session panel
+               tabPanel("Beenden", style = 'width: 1400px; height: 1150px',
+                
+                        # close button
+                        tags$button(id = 'close', type = "button", class = "btn action-button",
+                          onclick = "setTimeout(function(){window.close();},500);", "Sitzung beenden")
+                                
                )
                
     )
