@@ -51,6 +51,9 @@ lapply(1:nrow(conf_sp), function(x){
   # project to WGS84
   this_obj <- spTransform(this_obj, CRS("+init=epsg:4326"))
   
+  # add id field
+  if (!("id" %in% colnames(this_obj@data))) this_obj@data$id <- 1:nrow(this_obj@data)
+  
   # save to global variable
   assign(conf_sp[x, "DataName_com"], this_obj, envir = .GlobalEnv)
   
@@ -96,6 +99,7 @@ lapply(1:nrow(conf_tab), function(x){
         nice_names <- gsub(x = nice_names, pattern = '  ', replacement = " ", fixed = T)
         nice_names <- gsub(x = nice_names, pattern = '- ', replacement = "-", fixed = T)
         nice_names <- gsub(x = nice_names, pattern = '__', replacement = "_", fixed = T)
+        nice_names <- trimws(nice_names, "right")
         
         # remove artefacts
         pos <- which(substr(nice_names, 1, 1) == "-")
