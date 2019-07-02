@@ -40,6 +40,9 @@ function(input, output, session){
   # render time slider
   output$time_sel_out <- renderUI({
     
+    # refresh if indicator has been recalculated
+    act <- ind_act$act
+    
     # get spatial data input
     this_att <- input$att_sel
     # this_att <- "Arbeitslose SGB-II/ SGB-III"
@@ -48,14 +51,17 @@ function(input, output, session){
     # get available times
     pos <- which(tab_ov[, "att_nice"] == this_att)
     times <- as.numeric(tab_ov[pos, "time"])
-    t.min <- min(times, na.rm = T)
-    t.max <- max(times, na.rm = T)
-    step_seq <- seq(t.min, t.max, length.out = length(pos))
-    step <- step_seq[2] - step_seq[1]
+    # t.min <- min(times, na.rm = T)
+    # t.max <- max(times, na.rm = T)
+    # step_seq <- seq(t.min, t.max, length.out = length(pos))
+    # step <- step_seq[2] - step_seq[1]
     
-    sliderInput(inputId = "time_sel", label = NULL,
-                value = t.max, min = t.min, max = t.max, sep = "",
-                step = step, ticks = F, animate = T, width = "90%")
+    # sliderInput(inputId = "time_sel", label = NULL,
+    #             value = t.max, min = t.min, max = t.max, sep = "",
+    #             step = step, ticks = F, animate = T, width = "90%")
+    
+    sliderTextInput(inputId = "time_sel", label = NULL,
+                choices = times, animate = T, width = "90%")
     
   })
   
@@ -721,6 +727,16 @@ function(input, output, session){
       # this_att3 <- "Svpfl.-Beschäftigte"
       # this_att4 <- "Svpfl.-Beschäftigte"
       # this_att5 <- "Svpfl.-Beschäftigte"
+      # this_att1 <- "Bevölkerungsprognose 2017"
+      # this_att2 <- "Bevölkerungsprognose 2017"
+      # this_att3 <- "Bevölkerungsprognose 2017"
+      # this_att4 <- "Bevölkerungsprognose 2017"
+      # this_att5 <- "Bevölkerungsprognose 2017"
+      # this_att1 <- "Bevölkerungsprognose 2017"
+      # this_att2 <- "0-5Jahre"
+      # this_att3 <- "0-5Jahre"
+      # this_att4 <- "0-5Jahre"
+      # this_att5 <- "0-5Jahre"
       w1 <- input$g_w1
       w2 <- input$g_w2
       w3 <- input$g_w3
@@ -739,10 +755,12 @@ function(input, output, session){
   
       # get data for all years, normalize and remove column names
       lapply(1:5, function(i) {
-        assign(paste0("av_atts", i), str_subset(colnames(this_sp@data), paste0("^", get(paste0("this_att", i)), "_")), envir = .GlobalEnv)
-        assign(paste0("av_cols", i), str_which(colnames(this_sp@data), paste0("^", get(paste0("this_att", i)), "_")), envir = .GlobalEnv)
+        temp_att <- paste0("^", get(paste0("this_att", i)), "_")
+        assign(paste0("av_atts", i), str_subset(colnames(this_sp@data), temp_att), envir = .GlobalEnv)
+        assign(paste0("av_cols", i), str_which(colnames(this_sp@data), temp_att), envir = .GlobalEnv)
         assign(paste0("this_dat_att", i), this_sp@data[,get(paste0("av_cols", i))], envir = .GlobalEnv)
         dat <- as.matrix(get(paste0("this_dat_att", i)))
+        class(dat) <- "numeric"
         colnames(dat) <- get(paste0("av_atts", i))
         dat_min <- min(dat, na.rm = T)
         dat_max <- max(dat, na.rm = T)
@@ -756,7 +774,17 @@ function(input, output, session){
       
       # filter for these years
       lapply(1:5, function(i){
-        pos <- str_which(colnames(get(paste0("this_dat_att_n", i))), paste0(av_times))
+        if (length(av_times) > 0){
+          pos <<- str_which(str_sub(colnames(get(paste0("this_dat_att_n", i))), -4), paste0(av_times[1]))
+          if (length(av_times) > 1){
+            lapply(2:length(av_times), function(j){
+              pos_temp <- str_which(str_sub(colnames(get(paste0("this_dat_att_n", i))), -4), paste0(av_times[j]))
+              assign("pos", c(pos, pos_temp), envir = .GlobalEnv)
+            })
+          }
+        } else {
+          pos <- str_which(str_sub(colnames(get(paste0("this_dat_att_n", i))), -4), get(paste0("av_times_", i))[1])
+        }
         pos_name <- colnames(get(paste0("this_dat_att_n", i)))[pos]
         temp_dat <- as.matrix(get(paste0("this_dat_att_n", i))[,pos])
         if (nrow(temp_dat) != nrow(get(paste0("this_dat_att_n", i)))) temp_dat <- t(temp_dat)
@@ -770,27 +798,32 @@ function(input, output, session){
         (this_dat_att_n4 * w4) + (this_dat_att_n5 * w5)
       
       # rename indicator data
-      colnames(ind_dat) <- paste0("OpenDashboard Indikator_timeSep_", av_times)
+      if (length(av_times) > 0) dat_names <- av_times else dat_names <- av_times_1[1]
+      colnames(ind_dat) <- paste0("OpenDashboard Indikator_timeSep_", dat_names)
       
       # add data to spatial object
-      if (all(colnames(ind_dat) %in% colnames(this_sp@data))){
-        pos <- which(colnames(this_sp@data) == colnames(ind_dat)[1])
-        this_sp@data[,pos:(pos + ncol(ind_dat) - 1)] <- ind_dat
-      } else {
-        this_sp@data <- cbind(this_sp@data, ind_dat)
-      }
+      pos <- str_which(colnames(this_sp@data), "OpenDashboard Indikator")  
+      if (length(pos) > 0) temp1 <- this_sp@data[,-pos] else temp1 <- this_sp@data
+      temp2 <- ind_dat
+      this_sp@data <- cbind(temp1, temp2)
+      this_sp <<- this_sp
       assign(input$sp_sel, this_sp, envir = .GlobalEnv)
+      
       
       # add entry to attribute overview
       if (!("OpenDashboard Indikator" %in% all_atts)) all_atts <<- c(all_atts, "OpenDashboard Indikator")
-      if (!("OpenDashboard Indikator" %in% tab_ov[,1])){
-        temp <- matrix(NA, nrow = length(av_times), ncol = 4)
-        temp[,1] <- "OpenDashboard Indikator"
-        temp[,2] <- "OpenDashboard Indikator"
-        temp[,3] <- av_times
-        temp[,4] <- paste0("OpenDashboardIndikator_", av_times)
-        tab_ov <<- rbind(tab_ov, temp)
-      }
+      
+      if (length(av_times) > 0) av_times_set <- av_times else av_times_set <- av_times_1[1]
+      pos <- which(tab_ov[,1] =="OpenDashboard Indikator")
+      if (length(pos) > 0) temp1 <- tab_ov[-pos,] else temp1 <- tab_ov
+      temp2 <- matrix(NA, nrow = length(av_times_set), ncol = 4)
+      temp2[,1] <- "OpenDashboard Indikator"
+      temp2[,2] <- "OpenDashboard Indikator"
+      temp2[,3] <- av_times_set
+      temp2[,4] <- paste0("OpenDashboardIndikator_", av_times_set)
+      tab_ov <<- rbind(temp1, temp2)
+      
+      
       
       # trigger events through reactive value
       ind_act$act <- Sys.time()
@@ -808,6 +841,12 @@ function(input, output, session){
     
   }, deleteFile = F)
   
+  # add loading page
+  output$loading <- renderImage({
+    
+    list(src = loadingPath, alt = "Gleich geht's los...")
+    
+  }, deleteFile = F)
   
   
   # quit session when browser is closed
@@ -824,5 +863,8 @@ function(input, output, session){
       stopApp()
     }
   })
+  
+  # # end loading screen
+  # hide_loading_page()
   
 }

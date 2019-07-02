@@ -25,6 +25,8 @@ library(plotly)
 library(shiny)
 library(stringr)
 library(scales)
+library(shinyWidgets)
+# library(shinyjs)
 
 # # load fonts
 # font_import()
@@ -92,6 +94,7 @@ lapply(1:nrow(conf_tab), function(x){
         this_obj[this_obj == "-"] <- 0
         this_obj[this_obj == ""] <- 0
         
+        
         # prepare nice attribute names
         nice_names <- gsub(x = colnames(this_obj), pattern = '\r', replacement = "", fixed = T)
         nice_names <- gsub(x = nice_names, pattern = '\n', replacement = "-", fixed = T)
@@ -99,6 +102,8 @@ lapply(1:nrow(conf_tab), function(x){
         nice_names <- gsub(x = nice_names, pattern = '  ', replacement = " ", fixed = T)
         nice_names <- gsub(x = nice_names, pattern = '- ', replacement = "-", fixed = T)
         nice_names <- gsub(x = nice_names, pattern = '__', replacement = "_", fixed = T)
+        nice_names <- gsub(x = nice_names, pattern = "\\(", replacement = "")
+        nice_names <- gsub(x = nice_names, pattern = "\\)", replacement = "")
         nice_names <- trimws(nice_names, "right")
         
         # remove artefacts
@@ -169,6 +174,7 @@ lapply(1:nrow(conf_sp), function(sp){
     
   })
   
+  
 })
 
 
@@ -179,13 +185,20 @@ lapply(1:nrow(conf_sp), function(x){
   # convert local data frame to regular data frame
   this_dat <- data.frame(get(paste0(conf_sp[x, 1], "_ldf")))
   
+  # correct for characters
+  this_dat <- as.data.frame(lapply(this_dat, function(x) {
+    if(is.character(x)) as.numeric(as.character(x)) else x
+  }))
+  
   # get nice attribute names with time information
   nice_names <- all_atts
   nice_names <- paste0(nice_names, "_timeSep_", tab_ov[-which(tab_ov == conf_join[1, 1]), 3])
   
+  
   # assign nice attribute names
   pos <- which((colnames(this_dat) %in% colnames(get(conf_sp[x, 1])@data)) == F)
   colnames(this_dat)[pos] <- nice_names
+  
   
   # overwrite attribute table
   this_sp <- get(conf_sp[x, 1])
@@ -194,6 +207,8 @@ lapply(1:nrow(conf_sp), function(x){
   assign(paste0(conf_sp[x, 1], "_dat"), this_dat, envir = .GlobalEnv)
   
 })
+
+
 
 # define colors
 mycol_1 <- rgb(0, 176, 240, maxColorValue = 255)
@@ -228,9 +243,10 @@ this_time <- t.max
 this_sp <- get(this_sp_char)
 this_dat <- this_sp@data[,paste0(this_att, "_timeSep_", this_time)]
 
-# load logo
+# load images
 # logo <- readPNG(paste0(getwd(), "/Logo.png"))
 logoPath <- paste0(getwd(), "/logo.png")
+loadingPath <- paste0(getwd(), "/loading.png")
 
 # set colors
 myred <- rgb(244,100,48, maxColorValue = 255)
@@ -246,3 +262,9 @@ a_clicked_names <- reactiveValues()
 a_clicked_names$names <- NULL
 ind_act <- reactiveValues()
 ind_act$act <- F
+
+# # prepare loading page
+# hide_loading_page <- function() {
+#   Sys.sleep(3)
+#   hide("loading_div")
+# }

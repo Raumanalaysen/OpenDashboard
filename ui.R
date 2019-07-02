@@ -8,6 +8,7 @@
 shinyUI(
   
   fluidPage(theme = "odStyle.css",
+            # useShinyjs(),
             
     # create navigation bar page
     navbarPage("OpenDashboard", id = "nav",
@@ -15,9 +16,8 @@ shinyUI(
                # create tab panel ----
                tabPanel("Datenvisualisierung", style = 'width: 1400px; height: 1150px',
                         
-                
                  # data selection division ----
-                 div(class = "controls", align = "center",
+                 div(id = "data_selection_division", class = "controls", align = "center",
                      
                      # data selection panel
                      absolutePanel(id = "dat_sel", class = "panel panel-default", fixed = F,
@@ -45,11 +45,9 @@ shinyUI(
                                    
                                    
                                    # select attribute
-                                   # h5("Kenngröße", align = "center"),
                                    uiOutput("att_sel_out"),
                                    
                                    # select time
-                                   # h5("Zeit", align = "center"),
                                    uiOutput("time_sel_out")
                                    
                                    
@@ -61,7 +59,7 @@ shinyUI(
                  
                  
                  # map division ----
-                 div(class = "controls", align = "center",
+                 div(id = "map_division", class = "controls", align = "center",
                      
                      # map panel
                      absolutePanel(id = "map_pan", class = "panel panel-default", fixed = F,
@@ -88,7 +86,7 @@ shinyUI(
                  
                  
                  # barplot division ----
-                 div(class = "controls", align = "center",
+                 div(id = "barplot_division", class = "controls", align = "center",
                      
                      # barplot panel
                      absolutePanel(id = "bp_pan", class = "panel panel-default", fixed = F,
@@ -104,7 +102,7 @@ shinyUI(
                  
                  
                  # scatterplot division ----
-                 div(class = "controls", align = "center",
+                 div(id = "scatterplot_division", class = "controls", align = "center",
                      
                      # scatterplot panel
                      absolutePanel(id = "scp_pan", class = "panel panel-default", fixed = F,
@@ -123,7 +121,7 @@ shinyUI(
                  
                  
                  # gauges selector division ----
-                 div(class = "controls", align = "center",
+                 div(id = "gauges_selector_division", class = "controls", align = "center",
                      
                      
                      # gauge panels
@@ -176,7 +174,7 @@ shinyUI(
                  
                  
                  # gauges division ----
-                 # div(class = "controls", align = "center",
+                 # div(id = "gauges_division", class = "controls", align = "center",
                  #     
                  #     
                  #     # gauge panels
@@ -221,12 +219,12 @@ shinyUI(
                  
                  
                  # gauges weighting division ----
-                 div(class = "controls", align = "center",
+                 div(id = "gauges_weighting_division", class = "controls", align = "center",
                      
                      
                      # gauge weighting panels
                      absolutePanel(id = "gauge_w1", class = "panel panel-default", fixed = F,
-                                   draggable = F, top = 1010, left = 5, right = 20, bottom = "auto",
+                                   draggable = F, top = 980, left = 5, right = 20, bottom = "auto",
                                    width = 278, height = 110,
                                    
                                    # gauge weighting
@@ -234,28 +232,28 @@ shinyUI(
                                    
                      ),
                      absolutePanel(id = "gauge_w2", class = "panel panel-default", fixed = F,
-                                   draggable = F, top = 1010, left = 288, right = 20, bottom = "auto",
+                                   draggable = F, top = 980, left = 288, right = 20, bottom = "auto",
                                    width = 278, height = 110,
                                    
                                    # gauge weighting
                                    sliderInput(inputId = "g_w2", label = "Gewichtung", value = 0, min = -1, max = 1, step = 0.05, width = "90%")
                      ),
                      absolutePanel(id = "gauge_w3", class = "panel panel-default", fixed = F,
-                                   draggable = F, top = 1010, left = 571, right = 20, bottom = "auto",
+                                   draggable = F, top = 980, left = 571, right = 20, bottom = "auto",
                                    width = 278, height = 110,
                                    
                                    # gauge weighting
                                    sliderInput(inputId = "g_w3", label = "Gewichtung", value = 0, min = -1, max = 1, step = 0.05, width = "90%")
                      ),
                      absolutePanel(id = "gauge_w4", class = "panel panel-default", fixed = F,
-                                   draggable = F, top = 1010, left = 854, right = 20, bottom = "auto",
+                                   draggable = F, top = 980, left = 854, right = 20, bottom = "auto",
                                    width = 278, height = 110,
                                    
                                    # gauge weighting
                                    sliderInput(inputId = "g_w4", label = "Gewichtung", value = 0, min = -1, max = 1, step = 0.05, width = "90%")
                      ),
                      absolutePanel(id = "gauge_w5", class = "panel panel-default", fixed = F,
-                                   draggable = F, top = 1010, left = 1137, right = 20, bottom = "auto",
+                                   draggable = F, top = 980, left = 1137, right = 20, bottom = "auto",
                                    width = 278, height = 110,
                                    
                                    # gauge weighting
@@ -264,10 +262,19 @@ shinyUI(
                      
                  )
                  
+                 # div(id = "loading_div", class = "controls",
+                 #     absolutePanel(id = "loading_panel", class = "loading", fixed = F,
+                 #                   draggable = T, top = 0, left = 0, right = 20, bottom = "auto",
+                 #                   width = 1400, height = 1150,
+                 # 
+                 #                   plotOutput('loading')))
+
                ),
                
+            
+               
                # create close session panel ----
-               tabPanel("Beenden", style = 'width: 1400px; height: 1150px',
+               tabPanel(id = "close_session_panel", "Beenden", style = 'width: 1400px; height: 1150px',
                 
                         # close button
                         tags$button(id = 'close', type = "button", class = "btn action-button",
